@@ -83,6 +83,7 @@ public class ApiTypeSwagger
             if (result == null || result.booleanValue()) continue;
             this.urlAddPath(urlPath + "/swagger/");
             this.urlAddPath(urlPath + "/swagger/index.html");
+            this.urlAddPath( urlPath+ "/swagger/swagger.json");
             this.urlAddPath(urlPath + "/api/");
             this.urlAddPath(urlPath + "/api/index.html");
             this.urlAddPath(urlPath + "/docs/");
