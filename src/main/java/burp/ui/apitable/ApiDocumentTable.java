@@ -90,8 +90,31 @@ public class ApiDocumentTable
             }
         });
         
+        JMenuItem deleteItemItem = new JMenuItem("Delete Item");
+        deleteItemItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int selectedRow = getSelectedRow();
+                if (selectedRow != -1) {
+                    int modelRow = convertRowIndexToModel(selectedRow);
+                    model.removeRow(modelRow);
+                }
+            }
+        });
+        
+        JMenuItem clearAllItem = new JMenuItem("Clear All Records");
+        clearAllItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                model.clear();
+            }
+        });
+        
         contextMenu.add(requestApiDocItem);
         contextMenu.add(copyUrlItem);
+        contextMenu.addSeparator();
+        contextMenu.add(deleteItemItem);
+        contextMenu.add(clearAllItem);
         
         this.addMouseListener(new MouseAdapter() {
             @Override
@@ -346,6 +369,20 @@ public class ApiDocumentTable
 
         public ApiDocumentEntity getApiDocument(int rowIndex) {
             return this.getEntityAt(rowIndex);
+        }
+        
+        /*
+         * WARNING - Removed try catching itself - possible behaviour change.
+         */
+        public synchronized void removeRow(int rowIndex) {
+            ApiDocumentTableModel apiDocumentTableModel;
+            ApiDocumentTableModel apiDocumentTableModel2 = apiDocumentTableModel = this;
+            synchronized (apiDocumentTableModel2) {
+                if (rowIndex >= 0 && rowIndex < this.tableData.size()) {
+                    this.tableData.remove(rowIndex);
+                    this.fireTableRowsDeleted(rowIndex, rowIndex);
+                }
+            }
         }
     }
 }
