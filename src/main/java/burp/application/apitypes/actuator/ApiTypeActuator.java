@@ -175,7 +175,9 @@ public class ApiTypeActuator
                             }
                             tempRequestResponse.setRequest(newRequest);
                             tempRequestResponse.sendRequest();
-                            results.add(new ApiEndpoint(uri, tempRequestResponse));
+                            // For Actuator API, use the endpoint name as summary
+                            String summary = "Actuator Endpoint: " + endpoint.getKey();
+                            results.add(new ApiEndpoint(uri, tempRequestResponse, summary));
                         } catch (MalformedURLException exception) {
                             throw new ApiKitRuntimeException(exception);
                         }
@@ -226,7 +228,9 @@ public class ApiTypeActuator
                                     }
                                     tempRequestResponse.setRequest(newRequest);
                                     tempRequestResponse.sendRequest();
-                                    results.add(new ApiEndpoint(path, tempRequestResponse));
+                                    // For Actuator API, use the endpoint key as summary
+                                    String summary = "Actuator Endpoint: " + endpoint.getKey();
+                                    results.add(new ApiEndpoint(path, tempRequestResponse, summary));
                                 } catch (MalformedURLException exception) {
                                     throw new ApiKitRuntimeException(exception);
                                 }

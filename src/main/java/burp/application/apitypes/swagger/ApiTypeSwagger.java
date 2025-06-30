@@ -315,7 +315,11 @@ public class ApiTypeSwagger
                     tempRequestResponse.setRequest(newRequest);
                     tempRequestResponse.sendRequest();
                     try {
-                        results.add(new ApiEndpoint(uri, tempRequestResponse));
+                        // Get summary for this API endpoint
+                        String method = headers.get(0).split(" ")[0];
+                        String apiKey = method + " " + uri;
+                        String summary = swaggerObject.apiSummaries.getOrDefault(apiKey, "");
+                        results.add(new ApiEndpoint(uri, tempRequestResponse, summary));
                     } catch (Exception e) {
                         stdout.println(e.getMessage());
                     }

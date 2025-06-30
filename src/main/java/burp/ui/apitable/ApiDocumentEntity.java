@@ -19,9 +19,10 @@ public class ApiDocumentEntity
     public int statusCode;
     public int contentLength;
     public String scanTime;
+    public String summary;
     public List<ApiDetailEntity> details;
 
-    public ApiDocumentEntity(int id, String url, int statusCode, String apiType, String unAuth, IHttpRequestResponse requestResponse, String scanTime, int contentLength, List<ApiDetailEntity> details) {
+    public ApiDocumentEntity(int id, String url, int statusCode, String apiType, String unAuth, IHttpRequestResponse requestResponse, String scanTime, int contentLength, String summary, List<ApiDetailEntity> details) {
         this.id = id;
         this.url = url;
         this.statusCode = statusCode;
@@ -30,6 +31,7 @@ public class ApiDocumentEntity
         this.requestResponse = requestResponse;
         this.scanTime = scanTime;
         this.contentLength = contentLength;
+        this.summary = summary;
         this.details = details;
     }
 
@@ -51,6 +53,10 @@ public class ApiDocumentEntity
     @Override
     public void setScanTime(String scanTime) {
         this.scanTime = scanTime;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
     }
 }
 

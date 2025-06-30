@@ -8,10 +8,18 @@ import burp.IHttpRequestResponse;
 public class ApiEndpoint {
     private String url;
     private IHttpRequestResponse httpRequestResponse;
+    private String summary;
 
     public ApiEndpoint(String url, IHttpRequestResponse httpRequestResponse) {
         this.url = url;
         this.httpRequestResponse = httpRequestResponse;
+        this.summary = "";
+    }
+
+    public ApiEndpoint(String url, IHttpRequestResponse httpRequestResponse, String summary) {
+        this.url = url;
+        this.httpRequestResponse = httpRequestResponse;
+        this.summary = summary != null ? summary : "";
     }
 
     public String getUrl() {
@@ -28,6 +36,14 @@ public class ApiEndpoint {
 
     public void setHttpRequestResponse(IHttpRequestResponse httpRequestResponse) {
         this.httpRequestResponse = httpRequestResponse;
+    }
+
+    public String getSummary() {
+        return this.summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary != null ? summary : "";
     }
 }
 

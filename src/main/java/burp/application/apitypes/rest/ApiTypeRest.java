@@ -166,7 +166,10 @@ public class ApiTypeRest
             tempRequestResponse.setRequest(newRequest);
             tempRequestResponse.sendRequest();
             try {
-                results.add(new ApiEndpoint(uri, tempRequestResponse));
+                // For REST API, use the HTTP method and path as summary
+                String method = headers.get(0).split(" ")[0];
+                String summary = "REST API: " + method + " " + uri;
+                results.add(new ApiEndpoint(uri, tempRequestResponse, summary));
             } catch (Exception e) {
                 stdout.println(e.getMessage());
             }

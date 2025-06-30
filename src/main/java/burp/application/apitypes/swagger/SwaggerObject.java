@@ -29,7 +29,9 @@ public class SwaggerObject {
     public JsonObject link;
     public HashMap<String, String> params;
     public HashMap<List<String>, byte[]> apiRequestResponse;
+    public HashMap<String, String> apiSummaries;
     public String content_type;
+    public String currentSummary;
     public String para_bodystr;
     public String para_querystr;
     public String in;
@@ -47,7 +49,9 @@ public class SwaggerObject {
         this.params = new HashMap();
         this.newheaders = new ArrayList<String>(headers);
         this.apiRequestResponse = new HashMap();
+        this.apiSummaries = new HashMap();
         this.method = "GET";
+        this.currentSummary = "";
         this.para_querystr = "";
         this.para_bodystr = "";
         this.path = "";
@@ -199,6 +203,15 @@ public class SwaggerObject {
                     JsonArray content_types;
                     this.method = apiMethod.getKey().toUpperCase();
                     this.content_type = "";
+                    this.currentSummary = "";
+                    
+                    // Extract summary from API method
+                    if (apiMethod.getValue().isJsonObject()) {
+                        JsonObject methodObj = apiMethod.getValue().getAsJsonObject();
+                        if (methodObj.get("summary") != null) {
+                            this.currentSummary = methodObj.get("summary").getAsString();
+                        }
+                    }
                     if (!apiMethod.getValue().isJsonObject()) continue;
                     if (apiMethod.getValue().getAsJsonObject().get("consumes") != null && (content_types = apiMethod.getValue().getAsJsonObject().get("consumes").getAsJsonArray()).size() != 0) {
                         this.content_type = content_types.get(0).getAsString();
@@ -477,6 +490,9 @@ public class SwaggerObject {
         }
         this.newheaders.set(0, this.method + " " + this.path + " HTTP/1.1");
         this.apiRequestResponse.put(this.newheaders, this.para_bodystr.getBytes(StandardCharsets.UTF_8));
+        // Save summary for this API endpoint
+        String apiKey = this.method + " " + this.path;
+        this.apiSummaries.put(apiKey, this.currentSummary);
         this.newheaders = new ArrayList<String>(this.headers);
     }
 }

@@ -71,98 +71,124 @@ public class ContextMenu
                                     }
                                 }
                                 
-                                // 发起HTTP请求获取API文档内容
-                                try {
-                                    java.net.URL apiUrl = new java.net.URL(url);
-                                    byte[] request = BurpExtender.getHelpers().buildHttpRequest(apiUrl);
-                                    IHttpRequestResponse apiDocResponse = BurpExtender.getCallbacks().makeHttpRequest(
-                                        BurpExtender.getHelpers().buildHttpService(apiUrl.getHost(), apiUrl.getPort(), apiUrl.getProtocol().equals("https"))
-                                        , request);
-                                    
-                                    if (apiDocResponse != null && apiDocResponse.getResponse() != null) {
-                                        // 使用ApiScanner检测和解析API文档
-                                        burp.application.ApiScanner apiScanner = new burp.application.ApiScanner();
-                                        // 清除之前的扫描状态，确保每次都能正常扫描
-                                        apiScanner.clearScanState();
-                                        java.util.ArrayList<burp.application.apitypes.ApiType> apiTypes = apiScanner.detect(apiDocResponse, false);
-                                        
-                                        if (!apiTypes.isEmpty()) {
-                                            // 为每个检测到的API类型设置文档内容
-                                            for (burp.application.apitypes.ApiType apiType : apiTypes) {
-                                                apiType.getApiDocuments().put(url, apiDocResponse);
+                                // 将HTTP请求操作移到后台线程执行，避免在EDT中进行网络请求
+                                final String finalUrl = url;
+                                final IHttpRequestResponse finalFirstMessage = firstMessage;
+                                
+                                // 使用新线程执行HTTP请求
+                                new Thread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        try {
+                                            // 发起HTTP请求获取API文档内容
+                                            java.net.URL apiUrl = new java.net.URL(finalUrl);
+                                            byte[] request = BurpExtender.getHelpers().buildHttpRequest(apiUrl);
+                                            IHttpRequestResponse apiDocResponse = BurpExtender.getCallbacks().makeHttpRequest(
+                                                BurpExtender.getHelpers().buildHttpService(apiUrl.getHost(), apiUrl.getPort(), apiUrl.getProtocol().equals("https"))
+                                                , request);
+                                            
+                                            if (apiDocResponse != null && apiDocResponse.getResponse() != null) {
+                                                // 使用ApiScanner检测和解析API文档
+                                                burp.application.ApiScanner apiScanner = new burp.application.ApiScanner();
+                                                // 清除之前的扫描状态，确保每次都能正常扫描
+                                                apiScanner.clearScanState();
+                                                java.util.ArrayList<burp.application.apitypes.ApiType> apiTypes = apiScanner.detect(apiDocResponse, false);
+                                                
+                                                if (!apiTypes.isEmpty()) {
+                                                    // 为每个检测到的API类型设置文档内容
+                                                    for (burp.application.apitypes.ApiType apiType : apiTypes) {
+                                                        apiType.getApiDocuments().put(finalUrl, apiDocResponse);
+                                                    }
+                                                    
+                                                    // 使用PassiveScanner解析API文档，这会自动添加到UI中
+                                                    PassiveScanner passiveScanner = new PassiveScanner();
+                                                    passiveScanner.parseApiDocument(apiTypes, null);
+                                                } else {
+                                                    // 如果没有检测到特定API类型，尝试基于内容类型判断
+                                                    String apiTypeName = "Manual";
+                                                    String responseBody = new String(apiDocResponse.getResponse());
+                                                    
+                                                    // 基于响应内容智能判断API类型
+                                                    if (responseBody.toLowerCase().contains("swagger") || responseBody.toLowerCase().contains("openapi")) {
+                                                        apiTypeName = "Swagger/OpenAPI";
+                                                    } else if (responseBody.toLowerCase().contains("graphql") || responseBody.toLowerCase().contains("__schema")) {
+                                                        apiTypeName = "GraphQL";
+                                                    } else if (responseBody.toLowerCase().contains("wsdl") || responseBody.toLowerCase().contains("soap")) {
+                                                        apiTypeName = "SOAP/WSDL";
+                                                    } else if (responseBody.toLowerCase().contains("wadl")) {
+                                                        apiTypeName = "WADL";
+                                                    } else if (responseBody.toLowerCase().contains("actuator")) {
+                                                        apiTypeName = "Spring Actuator";
+                                                    } else if (responseBody.toLowerCase().contains("json") && (responseBody.contains("paths") || responseBody.contains("endpoints"))) {
+                                                        apiTypeName = "REST API";
+                                                    }
+                                                    
+                                                    // 在EDT中更新UI
+                                                    final String finalApiTypeName = apiTypeName;
+                                                    javax.swing.SwingUtilities.invokeLater(new Runnable() {
+                                                        @Override
+                                                        public void run() {
+                                                            burp.ui.apitable.ApiDocumentEntity apiDocumentEntity = new burp.ui.apitable.ApiDocumentEntity(
+                                                                (int) (System.currentTimeMillis() % Integer.MAX_VALUE),
+                                                                finalUrl,
+                                                                BurpExtender.getHelpers().analyzeResponse(apiDocResponse.getResponse()).getStatusCode(),
+                                                                finalApiTypeName,
+                                                                "Detected",
+                                                                apiDocResponse,
+                                                                new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date()),
+                                                                Integer.parseInt(burp.utils.CommonUtils.getContentLength(apiDocResponse)),
+                                                                "API Document: " + finalApiTypeName,
+                                                                new java.util.ArrayList<>()
+                                                            );
+                                                            BurpExtender.getExtensionTab().addApiDocument(apiDocumentEntity);
+                                                        }
+                                                    });
+                                                }
                                             }
-                                            
-                                            // 使用PassiveScanner解析API文档，这会自动添加到UI中
-                                            PassiveScanner passiveScanner = new PassiveScanner();
-                                            passiveScanner.parseApiDocument(apiTypes, null);
-                                        } else {
-                                            // 如果没有检测到特定API类型，尝试基于内容类型判断
+                                        } catch (Exception ex) {
+                                            ex.printStackTrace(BurpExtender.getStderr());
+                                            // 如果请求失败，基于URL进行智能判断
                                             String apiTypeName = "Manual";
-                                            String responseBody = new String(apiDocResponse.getResponse());
+                                            String urlLower = finalUrl.toLowerCase();
                                             
-                                            // 基于响应内容智能判断API类型
-                                            if (responseBody.toLowerCase().contains("swagger") || responseBody.toLowerCase().contains("openapi")) {
+                                            // 基于URL路径智能判断可能的API类型
+                                            if (urlLower.contains("swagger") || urlLower.contains("openapi") || urlLower.contains("api-docs")) {
                                                 apiTypeName = "Swagger/OpenAPI";
-                                            } else if (responseBody.toLowerCase().contains("graphql") || responseBody.toLowerCase().contains("__schema")) {
+                                            } else if (urlLower.contains("graphql")) {
                                                 apiTypeName = "GraphQL";
-                                            } else if (responseBody.toLowerCase().contains("wsdl") || responseBody.toLowerCase().contains("soap")) {
+                                            } else if (urlLower.contains("wsdl") || urlLower.contains("soap")) {
                                                 apiTypeName = "SOAP/WSDL";
-                                            } else if (responseBody.toLowerCase().contains("wadl")) {
+                                            } else if (urlLower.contains("wadl")) {
                                                 apiTypeName = "WADL";
-                                            } else if (responseBody.toLowerCase().contains("actuator")) {
+                                            } else if (urlLower.contains("actuator")) {
                                                 apiTypeName = "Spring Actuator";
-                                            } else if (responseBody.toLowerCase().contains("json") && (responseBody.contains("paths") || responseBody.contains("endpoints"))) {
+                                            } else if (urlLower.contains("api") || urlLower.contains("rest")) {
                                                 apiTypeName = "REST API";
                                             }
                                             
-                                            burp.ui.apitable.ApiDocumentEntity apiDocumentEntity = new burp.ui.apitable.ApiDocumentEntity(
-                                                (int) (System.currentTimeMillis() % Integer.MAX_VALUE),
-                                                url,
-                                                BurpExtender.getHelpers().analyzeResponse(apiDocResponse.getResponse()).getStatusCode(),
-                                                apiTypeName,
-                                                "Detected",
-                                                apiDocResponse,
-                                                new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date()),
-                                                Integer.parseInt(burp.utils.CommonUtils.getContentLength(apiDocResponse)),
-                                                new java.util.ArrayList<>()
-                                            );
-                                            BurpExtender.getExtensionTab().addApiDocument(apiDocumentEntity);
+                                            // 在EDT中更新UI
+                                            final String finalApiTypeName = apiTypeName;
+                                            javax.swing.SwingUtilities.invokeLater(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    burp.ui.apitable.ApiDocumentEntity apiDocumentEntity = new burp.ui.apitable.ApiDocumentEntity(
+                                                        (int) (System.currentTimeMillis() % Integer.MAX_VALUE),
+                                                        finalUrl,
+                                                        0,
+                                                        finalApiTypeName,
+                                                        "Failed",
+                                                        finalFirstMessage,
+                                                        new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date()),
+                                                        0,
+                                                        "Failed to load: " + finalApiTypeName,
+                                                        new java.util.ArrayList<>()
+                                                    );
+                                                    BurpExtender.getExtensionTab().addApiDocument(apiDocumentEntity);
+                                                }
+                                            });
                                         }
                                     }
-                                } catch (Exception ex) {
-                                    ex.printStackTrace(BurpExtender.getStderr());
-                                    // 如果请求失败，基于URL进行智能判断
-                                    String apiTypeName = "Manual";
-                                    String urlLower = url.toLowerCase();
-                                    
-                                    // 基于URL路径智能判断可能的API类型
-                                    if (urlLower.contains("swagger") || urlLower.contains("openapi") || urlLower.contains("api-docs")) {
-                                        apiTypeName = "Swagger/OpenAPI";
-                                    } else if (urlLower.contains("graphql")) {
-                                        apiTypeName = "GraphQL";
-                                    } else if (urlLower.contains("wsdl") || urlLower.contains("soap")) {
-                                        apiTypeName = "SOAP/WSDL";
-                                    } else if (urlLower.contains("wadl")) {
-                                        apiTypeName = "WADL";
-                                    } else if (urlLower.contains("actuator")) {
-                                        apiTypeName = "Spring Actuator";
-                                    } else if (urlLower.contains("api") || urlLower.contains("rest")) {
-                                        apiTypeName = "REST API";
-                                    }
-                                    
-                                    burp.ui.apitable.ApiDocumentEntity apiDocumentEntity = new burp.ui.apitable.ApiDocumentEntity(
-                                        (int) (System.currentTimeMillis() % Integer.MAX_VALUE),
-                                        url,
-                                        0,
-                                        apiTypeName,
-                                        "Failed",
-                                        firstMessage,
-                                        new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date()),
-                                        0,
-                                        new java.util.ArrayList<>()
-                                    );
-                                    BurpExtender.getExtensionTab().addApiDocument(apiDocumentEntity);
-                                }
+                                }).start();
                             }
                         }
                     } catch (Exception e) {

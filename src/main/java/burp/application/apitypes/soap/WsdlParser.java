@@ -91,7 +91,9 @@ public class WsdlParser {
                     }
                     tempRequestResponse.setRequest(apiRequest);
                     tempRequestResponse.sendRequest();
-                    apiEndpoints.add(new ApiEndpoint(operation.getName(), tempRequestResponse));
+                    // For SOAP API, use the operation name as summary
+                    String summary = "SOAP Operation: " + operation.getName();
+                    apiEndpoints.add(new ApiEndpoint(operation.getName(), tempRequestResponse, summary));
                 }
             }
         }

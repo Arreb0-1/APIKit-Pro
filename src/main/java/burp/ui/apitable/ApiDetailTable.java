@@ -127,7 +127,7 @@ public class ApiDetailTable
 
         @Override
         public int getColumnCount() {
-            return 6;
+            return 7;
         }
 
         @Override
@@ -149,6 +149,9 @@ public class ApiDetailTable
                     return String.class;
                 }
                 case 5: {
+                    return String.class;
+                }
+                case 6: {
                     return String.class;
                 }
             }
@@ -176,6 +179,9 @@ public class ApiDetailTable
                 case 5: {
                     return "Scan Time";
                 }
+                case 6: {
+                    return "Summary";
+                }
             }
             return null;
         }
@@ -201,6 +207,9 @@ public class ApiDetailTable
                 }
                 case 5: {
                     return entity.scanTime;
+                }
+                case 6: {
+                    return entity.summary;
                 }
             }
             return null;

@@ -247,7 +247,7 @@ public class ApiDocumentTable
 
         @Override
         public int getColumnCount() {
-            return 7;
+            return 8;
         }
 
         @Override
@@ -272,6 +272,9 @@ public class ApiDocumentTable
                     return String.class;
                 }
                 case 6: {
+                    return String.class;
+                }
+                case 7: {
                     return String.class;
                 }
             }
@@ -302,6 +305,9 @@ public class ApiDocumentTable
                 case 6: {
                     return "Scan Time";
                 }
+                case 7: {
+                    return "Summary";
+                }
             }
             return null;
         }
@@ -330,6 +336,9 @@ public class ApiDocumentTable
                 }
                 case 6: {
                     return entity.scanTime;
+                }
+                case 7: {
+                    return entity.summary != null ? entity.summary : "";
                 }
             }
             return null;

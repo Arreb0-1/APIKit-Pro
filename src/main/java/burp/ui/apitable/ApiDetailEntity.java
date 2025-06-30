@@ -11,15 +11,17 @@ public class ApiDetailEntity
     public final String name;
     public final String apiType;
     public final IHttpRequestResponse requestResponse;
+    public final String summary;
     public String unAuth;
     public int statusCode;
     public int contentLength;
     public String scanTime;
 
-    public ApiDetailEntity(String name, int statusCode, String apiType, String unAuth, IHttpRequestResponse requestResponse, String scanTime, int contentLength) {
+    public ApiDetailEntity(String name, int statusCode, String apiType, String unAuth, IHttpRequestResponse requestResponse, String scanTime, int contentLength, String summary) {
         this.name = name;
         this.apiType = apiType;
         this.requestResponse = requestResponse;
+        this.summary = summary;
         this.scanTime = scanTime;
         this.unAuth = unAuth;
         this.statusCode = statusCode;

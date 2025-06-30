@@ -166,7 +166,9 @@ public class ApiTypeGraphQL
             }
             tempRequestResponse.setRequest(newRequest);
             tempRequestResponse.sendRequest();
-            results.add(new ApiEndpoint("query:" + Constants.GRAPHQL_SPACE + endpoint.getKey(), tempRequestResponse));
+            // For GraphQL, use the field name as summary
+            String summary = "GraphQL Query: " + endpoint.getKey();
+            results.add(new ApiEndpoint("query:" + Constants.GRAPHQL_SPACE + endpoint.getKey(), tempRequestResponse, summary));
         }
         endpoints = parseResult.mutationParseResult.entrySet();
         for (Map.Entry<String, String> endpoint : endpoints) {
@@ -198,7 +200,9 @@ public class ApiTypeGraphQL
             }
             tempRequestResponse.setRequest(newRequest);
             tempRequestResponse.sendRequest();
-            results.add(new ApiEndpoint("mutation:" + Constants.GRAPHQL_SPACE + endpoint.getKey(), tempRequestResponse));
+            // For GraphQL, use the field name as summary
+            String summary = "GraphQL Mutation: " + endpoint.getKey();
+            results.add(new ApiEndpoint("mutation:" + Constants.GRAPHQL_SPACE + endpoint.getKey(), tempRequestResponse, summary));
         }
         return results;
     }

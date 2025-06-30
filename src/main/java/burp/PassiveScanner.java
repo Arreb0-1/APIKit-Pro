@@ -103,7 +103,15 @@ public class PassiveScanner
                         synchronized (lockObj) {
                             num = PassiveScanner.this.scannedCount++;
                         }
-                        ApiDocumentEntity apiDocument = new ApiDocumentEntity(num, (String) entry.getKey(), BurpExtender.getHelpers().analyzeResponse(((IHttpRequestResponse) entry.getValue()).getResponse()).getStatusCode(), apiType.getApiTypeName(), "true", (IHttpRequestResponse) entry.getValue(), CommonUtils.getCurrentDateTime(), Integer.parseInt(CommonUtils.getContentLength((IHttpRequestResponse) entry.getValue())), apiDetails);
+                        // Get summary from ApiDetailEntity if available
+                        String summary = "";
+                        for (ApiDetailEntity detail : apiDetails) {
+                            if (detail.name.equals(entry.getKey())) {
+                                summary = detail.apiType + " API";
+                                break;
+                            }
+                        }
+                        ApiDocumentEntity apiDocument = new ApiDocumentEntity(num, (String) entry.getKey(), BurpExtender.getHelpers().analyzeResponse(((IHttpRequestResponse) entry.getValue()).getResponse()).getStatusCode(), apiType.getApiTypeName(), "true", (IHttpRequestResponse) entry.getValue(), CommonUtils.getCurrentDateTime(), Integer.parseInt(CommonUtils.getContentLength((IHttpRequestResponse) entry.getValue())), summary, apiDetails);
                         extensionTab.addApiDocument(apiDocument);
                     }
                 }).start();
@@ -115,10 +123,14 @@ public class PassiveScanner
     }
 
     private ApiDetailEntity createApiDetailEntity(ApiEndpoint endpoint, IHttpRequestResponse response, ApiType apiType) {
-        if (response.getResponse() != null && response.getResponse().length != 0) {
-            return new ApiDetailEntity(endpoint.getUrl(), BurpExtender.getHelpers().analyzeResponse(response.getResponse()).getStatusCode(), apiType.getApiTypeName(), String.valueOf(CommonUtils.isUnAuthResponse(response)), response, CommonUtils.getCurrentDateTime(), Integer.parseInt(CommonUtils.getContentLength(response)));
+        String summary = endpoint.getSummary();
+        if (summary == null || summary.trim().isEmpty()) {
+            summary = "API endpoint: " + endpoint.getUrl();
         }
-        return new ApiDetailEntity(endpoint.getUrl(), 0, apiType.getApiTypeName(), "false", response, CommonUtils.getCurrentDateTime(), 0);
+        if (response.getResponse() != null && response.getResponse().length != 0) {
+            return new ApiDetailEntity(endpoint.getUrl(), BurpExtender.getHelpers().analyzeResponse(response.getResponse()).getStatusCode(), apiType.getApiTypeName(), String.valueOf(CommonUtils.isUnAuthResponse(response)), response, CommonUtils.getCurrentDateTime(), Integer.parseInt(CommonUtils.getContentLength(response)), summary);
+        }
+        return new ApiDetailEntity(endpoint.getUrl(), 0, apiType.getApiTypeName(), "false", response, CommonUtils.getCurrentDateTime(), 0, summary);
     }
 
     @Override
