@@ -17,6 +17,7 @@ import burp.exceptions.ApiKitRuntimeException;
 import burp.utils.CommonUtils;
 import burp.utils.HttpRequestResponse;
 import burp.utils.UrlScanCount;
+import burp.utils.DangerousApiFilter;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -177,7 +178,18 @@ public class ApiTypeActuator
                             tempRequestResponse.sendRequest();
                             // For Actuator API, use the endpoint name as summary
                             String summary = "Actuator Endpoint: " + endpoint.getKey();
-                            results.add(new ApiEndpoint(uri, tempRequestResponse, summary));
+                            ApiEndpoint apiEndpoint = new ApiEndpoint(uri, tempRequestResponse, summary);
+                            
+                            // 检查并标记危险接口
+                            if (BurpExtender.getConfigPanel().getDangerousApiFilterEnabled().booleanValue()) {
+                                DangerousApiFilter filter = createDangerousApiFilter();
+                                apiEndpoint.checkAndMarkDangerous(filter);
+                                if (apiEndpoint.isDangerous()) {
+                                    BurpExtender.getStdout().println("[Dangerous API Filter] Detected dangerous Actuator endpoint: " + endpoint.getKey() + " (" + apiEndpoint.getDangerousReason() + ")");
+                                }
+                            }
+                            
+                            results.add(apiEndpoint);
                         } catch (MalformedURLException exception) {
                             throw new ApiKitRuntimeException(exception);
                         }
@@ -230,7 +242,18 @@ public class ApiTypeActuator
                                     tempRequestResponse.sendRequest();
                                     // For Actuator API, use the endpoint key as summary
                                     String summary = "Actuator Endpoint: " + endpoint.getKey();
-                                    results.add(new ApiEndpoint(path, tempRequestResponse, summary));
+                                    ApiEndpoint apiEndpoint = new ApiEndpoint(path, tempRequestResponse, summary);
+                                    
+                                    // 检查并标记危险接口
+                                    if (BurpExtender.getConfigPanel().getDangerousApiFilterEnabled().booleanValue()) {
+                                        DangerousApiFilter filter = createDangerousApiFilter();
+                                        apiEndpoint.checkAndMarkDangerous(filter);
+                                        if (apiEndpoint.isDangerous()) {
+                                            BurpExtender.getStdout().println("[Dangerous API Filter] Detected dangerous Actuator endpoint: " + endpoint.getKey() + " (" + apiEndpoint.getDangerousReason() + ")");
+                                        }
+                                    }
+                                    
+                                    results.add(apiEndpoint);
                                 } catch (MalformedURLException exception) {
                                     throw new ApiKitRuntimeException(exception);
                                 }
@@ -280,7 +303,18 @@ public class ApiTypeActuator
                             }
                             tempRequestResponse.setRequest(newRequest);
                             tempRequestResponse.sendRequest();
-                            results.add(new ApiEndpoint(uri, tempRequestResponse));
+                            ApiEndpoint apiEndpoint = new ApiEndpoint(uri, tempRequestResponse);
+                            
+                            // 检查并标记危险接口
+                            if (BurpExtender.getConfigPanel().getDangerousApiFilterEnabled().booleanValue()) {
+                                DangerousApiFilter filter = createDangerousApiFilter();
+                                apiEndpoint.checkAndMarkDangerous(filter);
+                                if (apiEndpoint.isDangerous()) {
+                                    BurpExtender.getStdout().println("[Dangerous API Filter] Detected dangerous Actuator endpoint: " + uri + " (" + apiEndpoint.getDangerousReason() + ")");
+                                }
+                            }
+                            
+                            results.add(apiEndpoint);
                         } catch (MalformedURLException exception) {
                             throw new ApiKitRuntimeException(exception);
                         }
@@ -314,6 +348,25 @@ public class ApiTypeActuator
 
     public void clearScanState() {
         scannedUrl.clear();
+    }
+    
+    /**
+     * 创建危险接口过滤器
+     * @return DangerousApiFilter实例
+     */
+    private DangerousApiFilter createDangerousApiFilter() {
+        String keywordsString = BurpExtender.getConfigPanel().getDangerousKeywords();
+        if (keywordsString != null && !keywordsString.trim().isEmpty()) {
+            String[] keywords = keywordsString.split(",");
+            java.util.HashSet<String> keywordSet = new java.util.HashSet<>();
+            for (String keyword : keywords) {
+                if (keyword != null && !keyword.trim().isEmpty()) {
+                    keywordSet.add(keyword.trim());
+                }
+            }
+            return new DangerousApiFilter(keywordSet);
+        }
+        return new DangerousApiFilter();
     }
 }
 

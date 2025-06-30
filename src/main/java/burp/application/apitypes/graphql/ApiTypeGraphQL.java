@@ -20,6 +20,7 @@ import burp.utils.Constants;
 import burp.utils.HttpRequestFormator;
 import burp.utils.HttpRequestResponse;
 import burp.utils.UrlScanCount;
+import burp.utils.DangerousApiFilter;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -168,7 +169,18 @@ public class ApiTypeGraphQL
             tempRequestResponse.sendRequest();
             // For GraphQL, use the field name as summary
             String summary = "GraphQL Query: " + endpoint.getKey();
-            results.add(new ApiEndpoint("query:" + Constants.GRAPHQL_SPACE + endpoint.getKey(), tempRequestResponse, summary));
+            ApiEndpoint apiEndpoint = new ApiEndpoint("query:" + Constants.GRAPHQL_SPACE + endpoint.getKey(), tempRequestResponse, summary);
+            
+            // 检查并标记危险接口
+            if (BurpExtender.getConfigPanel().getDangerousApiFilterEnabled().booleanValue()) {
+                DangerousApiFilter filter = createDangerousApiFilter();
+                apiEndpoint.checkAndMarkDangerous(filter);
+                if (apiEndpoint.isDangerous()) {
+                    BurpExtender.getStdout().println("[Dangerous API Filter] Detected dangerous GraphQL query: " + endpoint.getKey() + " (" + apiEndpoint.getDangerousReason() + ")");
+                }
+            }
+            
+            results.add(apiEndpoint);
         }
         endpoints = parseResult.mutationParseResult.entrySet();
         for (Map.Entry<String, String> endpoint : endpoints) {
@@ -202,7 +214,18 @@ public class ApiTypeGraphQL
             tempRequestResponse.sendRequest();
             // For GraphQL, use the field name as summary
             String summary = "GraphQL Mutation: " + endpoint.getKey();
-            results.add(new ApiEndpoint("mutation:" + Constants.GRAPHQL_SPACE + endpoint.getKey(), tempRequestResponse, summary));
+            ApiEndpoint apiEndpoint = new ApiEndpoint("mutation:" + Constants.GRAPHQL_SPACE + endpoint.getKey(), tempRequestResponse, summary);
+            
+            // 检查并标记危险接口
+            if (BurpExtender.getConfigPanel().getDangerousApiFilterEnabled().booleanValue()) {
+                DangerousApiFilter filter = createDangerousApiFilter();
+                apiEndpoint.checkAndMarkDangerous(filter);
+                if (apiEndpoint.isDangerous()) {
+                    BurpExtender.getStdout().println("[Dangerous API Filter] Detected dangerous GraphQL mutation: " + endpoint.getKey() + " (" + apiEndpoint.getDangerousReason() + ")");
+                }
+            }
+            
+            results.add(apiEndpoint);
         }
         return results;
     }
@@ -215,6 +238,25 @@ public class ApiTypeGraphQL
     @Override
     public String exportConsole() {
         return "";
+    }
+    
+    /**
+     * 创建危险接口过滤器
+     * @return DangerousApiFilter实例
+     */
+    private DangerousApiFilter createDangerousApiFilter() {
+        String keywordsString = BurpExtender.getConfigPanel().getDangerousKeywords();
+        if (keywordsString != null && !keywordsString.trim().isEmpty()) {
+            String[] keywords = keywordsString.split(",");
+            java.util.HashSet<String> keywordSet = new java.util.HashSet<>();
+            for (String keyword : keywords) {
+                if (keyword != null && !keyword.trim().isEmpty()) {
+                    keywordSet.add(keyword.trim());
+                }
+            }
+            return new DangerousApiFilter(keywordSet);
+        }
+        return new DangerousApiFilter();
     }
 }
 

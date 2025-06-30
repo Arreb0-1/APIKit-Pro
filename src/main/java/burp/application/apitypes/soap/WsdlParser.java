@@ -9,6 +9,7 @@ import burp.IHttpRequestResponse;
 import burp.application.apitypes.ApiEndpoint;
 import burp.utils.HttpRequestFormator;
 import burp.utils.HttpRequestResponse;
+import burp.utils.DangerousApiFilter;
 import com.predic8.wsdl.BindingOperation;
 import com.predic8.wsdl.Definitions;
 import com.predic8.wsdl.Port;
@@ -93,11 +94,41 @@ public class WsdlParser {
                     tempRequestResponse.sendRequest();
                     // For SOAP API, use the operation name as summary
                     String summary = "SOAP Operation: " + operation.getName();
-                    apiEndpoints.add(new ApiEndpoint(operation.getName(), tempRequestResponse, summary));
+                    ApiEndpoint endpoint = new ApiEndpoint(operation.getName(), tempRequestResponse, summary);
+                    
+                    // 检查并标记危险接口
+                    if (BurpExtender.getConfigPanel().getDangerousApiFilterEnabled().booleanValue()) {
+                        DangerousApiFilter filter = createDangerousApiFilter();
+                        endpoint.checkAndMarkDangerous(filter);
+                        if (endpoint.isDangerous()) {
+                            BurpExtender.getStdout().println("[Dangerous API Filter] Detected dangerous SOAP operation: " + operation.getName() + " (" + endpoint.getDangerousReason() + ")");
+                        }
+                    }
+                    
+                    apiEndpoints.add(endpoint);
                 }
             }
         }
         return apiEndpoints;
+    }
+    
+    /**
+     * 创建危险接口过滤器
+     * @return DangerousApiFilter实例
+     */
+    private static DangerousApiFilter createDangerousApiFilter() {
+        String keywordsString = BurpExtender.getConfigPanel().getDangerousKeywords();
+        if (keywordsString != null && !keywordsString.trim().isEmpty()) {
+            String[] keywords = keywordsString.split(",");
+            java.util.HashSet<String> keywordSet = new java.util.HashSet<>();
+            for (String keyword : keywords) {
+                if (keyword != null && !keyword.trim().isEmpty()) {
+                    keywordSet.add(keyword.trim());
+                }
+            }
+            return new DangerousApiFilter(keywordSet);
+        }
+        return new DangerousApiFilter();
     }
 }
 

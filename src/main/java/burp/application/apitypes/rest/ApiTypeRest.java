@@ -20,6 +20,7 @@ import burp.utils.HttpRequestFormator;
 import burp.utils.HttpRequestResponse;
 import burp.utils.RedirectUtils;
 import burp.utils.UrlScanCount;
+import burp.utils.DangerousApiFilter;
 
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
@@ -169,7 +170,18 @@ public class ApiTypeRest
                 // For REST API, use the HTTP method and path as summary
                 String method = headers.get(0).split(" ")[0];
                 String summary = "REST API: " + method + " " + uri;
-                results.add(new ApiEndpoint(uri, tempRequestResponse, summary));
+                ApiEndpoint endpoint = new ApiEndpoint(uri, tempRequestResponse, summary);
+                
+                // 检查并标记危险接口
+                if (BurpExtender.getConfigPanel().getDangerousApiFilterEnabled().booleanValue()) {
+                    DangerousApiFilter filter = createDangerousApiFilter();
+                    endpoint.checkAndMarkDangerous(filter);
+                    if (endpoint.isDangerous()) {
+                        BurpExtender.getStdout().println("[Dangerous API Filter] Detected dangerous REST endpoint: " + uri + " (" + endpoint.getDangerousReason() + ")");
+                    }
+                }
+                
+                results.add(endpoint);
             } catch (Exception e) {
                 stdout.println(e.getMessage());
             }
@@ -198,6 +210,25 @@ public class ApiTypeRest
     public String exportConsole() {
         String stringBuilder = "\n============== API \u6307\u7eb9\u8be6\u60c5 ============\nxxxx\n\u8be6\u60c5\u8bf7\u67e5\u770b - Burp Scanner \u6a21\u5757 - Issue activity \u754c\u9762\n===================================";
         return stringBuilder;
+    }
+    
+    /**
+     * 创建危险接口过滤器
+     * @return DangerousApiFilter实例
+     */
+    private DangerousApiFilter createDangerousApiFilter() {
+        String keywordsString = BurpExtender.getConfigPanel().getDangerousKeywords();
+        if (keywordsString != null && !keywordsString.trim().isEmpty()) {
+            String[] keywords = keywordsString.split(",");
+            java.util.HashSet<String> keywordSet = new java.util.HashSet<>();
+            for (String keyword : keywords) {
+                if (keyword != null && !keyword.trim().isEmpty()) {
+                    keywordSet.add(keyword.trim());
+                }
+            }
+            return new DangerousApiFilter(keywordSet);
+        }
+        return new DangerousApiFilter();
     }
 }
 
