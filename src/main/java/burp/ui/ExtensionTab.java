@@ -8,6 +8,7 @@ import burp.IBurpExtenderCallbacks;
 import burp.ITab;
 import burp.ui.ConfigPanel;
 import burp.ui.HttpRequestResponsePanel;
+import burp.ui.TargetAPIConfigPanel;
 import burp.ui.apitable.ApiDetailTable;
 import burp.ui.apitable.ApiDocumentEntity;
 import burp.ui.apitable.ApiDocumentTable;
@@ -15,24 +16,31 @@ import burp.ui.apitable.ApiDocumentTable;
 import java.awt.Component;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
 
 public class ExtensionTab
         implements ITab {
     private final String tagName;
     private final ConfigPanel configPanel;
-    private JSplitPane mainPanel;
+    private JTabbedPane mainPanel;
     private ApiDocumentTable apiDocumentTable;
+    private TargetAPIConfigPanel targetAPIConfigPanel;
 
     public ExtensionTab(String name) {
         final IBurpExtenderCallbacks callbacks = BurpExtender.getCallbacks();
         this.tagName = name;
         this.configPanel = new ConfigPanel();
+        this.targetAPIConfigPanel = new TargetAPIConfigPanel();
         SwingUtilities.invokeLater(new Runnable() {
 
             @Override
             public void run() {
-                ExtensionTab.this.mainPanel = new JSplitPane(0);
+                // 创建主标签页面板
+                ExtensionTab.this.mainPanel = new JTabbedPane();
+                
+                // 创建API扫描主界面
+                JSplitPane apiScanPanel = new JSplitPane(0);
                 HttpRequestResponsePanel httpRequestResponsePanel = new HttpRequestResponsePanel(callbacks);
                 JSplitPane apiTableAndConfigPanel = new JSplitPane(0);
                 apiTableAndConfigPanel.setEnabled(false);
@@ -54,9 +62,14 @@ public class ExtensionTab
                 apiTablePanel.setResizeWeight(0.5);
                 apiTableAndConfigPanel.add((Component) ExtensionTab.this.configPanel, "left");
                 apiTableAndConfigPanel.add((Component) apiTablePanel, "right");
-                ExtensionTab.this.mainPanel.add((Component) apiTableAndConfigPanel, "left");
-                ExtensionTab.this.mainPanel.add((Component) httpRequestResponsePanel, "right");
-                ExtensionTab.this.mainPanel.setResizeWeight(0.5);
+                apiScanPanel.add((Component) apiTableAndConfigPanel, "left");
+                apiScanPanel.add((Component) httpRequestResponsePanel, "right");
+                apiScanPanel.setResizeWeight(0.5);
+                
+                // 添加标签页
+                ExtensionTab.this.mainPanel.addTab("API Scanner", apiScanPanel);
+                ExtensionTab.this.mainPanel.addTab("Target API Scan", ExtensionTab.this.targetAPIConfigPanel.getMainPanel());
+                
                 callbacks.customizeUiComponent(ExtensionTab.this.mainPanel);
                 callbacks.addSuiteTab(ExtensionTab.this);
             }

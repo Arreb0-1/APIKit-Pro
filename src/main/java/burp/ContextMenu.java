@@ -35,23 +35,9 @@ public class ContextMenu
         if (invocation != null && availableToolFlag.contains(invocation.getInvocationContext())) {
             ArrayList<JMenuItem> menuItemList = new ArrayList<JMenuItem>();
             JMenuItem AutoAPIScan = new JMenuItem("Do Auto API Scan");
-            JMenuItem TargetAPIScan2 = new JMenuItem("Do Target API Scan");
             JMenuItem SendToPanel = new JMenuItem("Send URL to API Panel");
             
             AutoAPIScan.addActionListener(new ContextMenuActionListener(invocation));
-            TargetAPIScan2.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent arg0) {
-                    try {
-                        TargetAPIConfigPanel panel = new TargetAPIConfigPanel();
-                        BurpExtender.getCallbacks().customizeUiComponent(panel);
-                        panel.setVisible(true);
-                    } catch (Exception e) {
-                        e.printStackTrace(BurpExtender.getStderr());
-                    }
-                }
-            });
             
             SendToPanel.addActionListener(new ActionListener() {
 
@@ -186,7 +172,6 @@ public class ContextMenu
             });
             
             menuItemList.add(AutoAPIScan);
-            menuItemList.add(TargetAPIScan2);
             menuItemList.add(SendToPanel);
             return menuItemList;
         }

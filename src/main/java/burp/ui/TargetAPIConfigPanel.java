@@ -27,7 +27,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 public class TargetAPIConfigPanel
-        extends JDialog {
+        extends JPanel {
     private final JPanel mainPanel = new JPanel();
     private final JPanel centerPanel = new JPanel();
     private final JPanel bottomPanel = new JPanel();
@@ -49,10 +49,13 @@ public class TargetAPIConfigPanel
         try {
             this.initGUI();
             this.initEvent();
-            this.setTitle("Do Target API Scan");
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    
+    public JPanel getMainPanel() {
+        return this.mainPanel;
     }
 
     public JComboBox getAPIType() {
@@ -107,12 +110,8 @@ public class TargetAPIConfigPanel
         this.mainPanel.setLayout(new BorderLayout());
         this.mainPanel.add((Component) this.centerPanel, "Center");
         this.mainPanel.add((Component) this.bottomPanel, "South");
-        this.setModal(true);
-        this.setDefaultCloseOperation(2);
-        this.add(this.mainPanel);
-        this.pack();
-        Dimension screensize = Toolkit.getDefaultToolkit().getScreenSize();
-        this.setBounds(screensize.width / 2 - this.getWidth() / 2, screensize.height / 2 - this.getHeight() / 2, this.getWidth() / 5 * 8, this.getHeight() + 100);
+        this.setLayout(new BorderLayout());
+        this.add(this.mainPanel, BorderLayout.CENTER);
     }
 
     private void initEvent() {
@@ -120,7 +119,12 @@ public class TargetAPIConfigPanel
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                TargetAPIConfigPanel.this.dispose();
+                // 清空所有输入字段
+                TargetAPIConfigPanel.this.BasePathURL.setText("https://apisecurity.cn/api/");
+                TargetAPIConfigPanel.this.APIDocumentURL.setText("https://apisecurity.cn/api/mappings");
+                TargetAPIConfigPanel.this.Headervalue.setText("Cookie: APIKit=APISecurity; ");
+                TargetAPIConfigPanel.this.BypassSuffixValue.setText("");
+                TargetAPIConfigPanel.this.APITypes.setSelectedIndex(0);
             }
         });
         this.btScan.addActionListener(new ActionListener() {
@@ -140,7 +144,8 @@ public class TargetAPIConfigPanel
                     ex.printStackTrace();
                     return;
                 }
-                TargetAPIConfigPanel.this.dispose();
+                // 扫描完成后，结果会自动显示在主表格中
+                BurpExtender.getStdout().println("Target API Scan started successfully!");
             }
         });
     }
