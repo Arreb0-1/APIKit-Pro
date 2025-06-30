@@ -6,7 +6,7 @@ package burp.application.apitypes;
 import burp.IHttpRequestResponse;
 import burp.IScanIssue;
 import burp.application.apitypes.ApiEndpoint;
-import groovyjarjarantlr4.v4.runtime.misc.Nullable;
+import javax.annotation.Nullable;
 
 import java.util.List;
 import java.util.Map;

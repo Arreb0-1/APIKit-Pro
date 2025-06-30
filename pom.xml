@@ -27,9 +27,7 @@
         <dependency>
             <groupId>com.predic8</groupId>
             <artifactId>soa-model-core</artifactId>
-            <version>1.6.4</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/soa-model-core-1.6.4-SNAPSHOT-patched-jar-with-dependencies.jar</systemPath>
+            <version>1.6.0</version>
         </dependency>
 
         <!-- YAML -->
